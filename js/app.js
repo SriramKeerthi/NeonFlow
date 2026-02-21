@@ -456,7 +456,7 @@ let lastTapAt = 0;
 globalThis.addEventListener("touchend", () => {
   const now = performance.now();
   if (now - lastTapAt < 280) {
-    if (uiHidden) setUiHidden(false);
+    setUiHidden(!uiHidden);
   }
   lastTapAt = now;
 }, { passive: true });
