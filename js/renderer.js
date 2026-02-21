@@ -67,7 +67,8 @@ function createRenderer(canvas) {
     hyperPop: 3,
     pinkHaze: 4,
     arcticVolt: 5,
-    toxicWave: 6
+    toxicWave: 6,
+    neonSunset: 7
   };
 
   function resize() {

@@ -76,12 +76,12 @@ const presets = {
     sparkPower: 0.84
   },
   neonSunset: {
-    warm: [1.2, 0.22, 0.1],
-    cool: [0.12, 0.3, 1.25],
-    spark: [1.35, 1.18, 0.12],
-    brightness: 1.25,
-    saturation: 1.25,
-    sparkPower: 1.1
+    warm: [1.35, 0.18, 0.1],
+    cool: [0.15, 0.3, 1.2],
+    spark: [1.45, 1.25, 0.15],
+    brightness: 1.28,
+    saturation: 1.3,
+    sparkPower: 1.15
   }
 };
 
@@ -92,6 +92,14 @@ const fontFamilies = {
   gallery: "'Palatino', 'Palatino Linotype', 'Book Antiqua', ui-serif, serif",
   editorial: "'Baskerville', 'Baskerville Old Face', 'Garamond', 'Times New Roman', serif",
   studio: "'Avenir Next', 'Avenir', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui",
+  rounded: "'Avenir Next Rounded', 'SF Pro Rounded', 'Arial Rounded MT Bold', ui-sans-serif, system-ui",
+  classic: "'Iowan Old Style', 'Palatino', 'Book Antiqua', 'Times New Roman', serif",
+  slab: "'Rockwell', 'Rockwell Nova', 'Roboto Slab', 'Times New Roman', serif",
+  script: "'Snell Roundhand', 'Zapfino', 'Apple Chancery', 'Brush Script MT', cursive",
+  wide: "'Unbounded', 'Arial Black', 'Impact', 'Haettenschweiler', ui-sans-serif, system-ui",
+  stencil: "'Black Ops One', 'Stencil', 'Stencil Std', 'Impact', sans-serif",
+  blackletter: "'UnifrakturMaguntia', 'UnifrakturCook', 'Old English Text MT', 'Goudy Text', serif",
+  pixel: "'Silkscreen', 'Press Start 2P', 'Pixel', 'SF Mono', 'Courier New', ui-monospace, monospace",
   mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
 };

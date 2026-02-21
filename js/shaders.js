@@ -124,6 +124,7 @@ const fragSrc = `
     bool isPinkHaze = abs(paletteMode - 4.0) < 0.5;
     bool isArcticVolt = abs(paletteMode - 5.0) < 0.5;
     bool isToxicWave = abs(paletteMode - 6.0) < 0.5;
+    bool isNeonSunset = abs(paletteMode - 7.0) < 0.5;
 
     float neonMode = isNeonFlow ? 1.0 : 0.0;
     float pinkMode = isPinkHaze ? 1.0 : 0.0;
@@ -132,6 +133,27 @@ const fragSrc = `
 
     vec3 warm = clamp(u_warm, 0.0, 3.0);
     vec3 cool = clamp(u_cool, 0.0, 3.0);
+
+    if (isNeonSunset) {
+      float bandLegacy = (p.x*0.28 + p.y*-0.08) + f*0.90;
+      vec3 baseLegacy = neonSpectrum(bandLegacy);
+      float lrLegacy = smoothstep(-1.15, 1.15, p.x);
+      vec3 tempLegacy = mix(warm, cool, lrLegacy);
+      vec3 colLegacy = tempLegacy * 0.62 + baseLegacy * 0.95;
+
+      float glowLegacy = 0.72*cells + 1.95*ridges;
+      float hotLegacy = pow(clamp(fbm(p*2.0 + r*1.6 + t), 0.0, 1.0), 4.0);
+      vec3 sparksLegacy = clamp(u_spark, 0.0, 3.0) * hotLegacy * (1.2 * u_sparkPower);
+
+      vec3 outLegacy = colLegacy * (0.66 + 1.12*glowLegacy) + sparksLegacy;
+      outLegacy *= u_brightness;
+      outLegacy = saturate(outLegacy, u_saturation);
+      outLegacy = outLegacy / (outLegacy + vec3(0.70));
+      outLegacy = pow(outLegacy, vec3(0.90));
+
+      gl_FragColor = vec4(outLegacy, 1.0);
+      return;
+    }
 
     vec3 temp = mix(warm, cool, mix(lr, paletteBlend, neonMode));
 
