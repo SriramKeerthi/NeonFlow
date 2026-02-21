@@ -17,6 +17,18 @@ const defaults = {
   sparkPower: 0.88
 };
 
+function cloneDefaults() {
+  if (typeof structuredClone === "function") {
+    return structuredClone(defaults);
+  }
+  return {
+    ...defaults,
+    warm: [...defaults.warm],
+    cool: [...defaults.cool],
+    spark: [...defaults.spark]
+  };
+}
+
 const presets = {
   neonFlow: {
     warm: [1.62, 0.06, 0.01],
@@ -86,13 +98,25 @@ function normalizeFontFamily(value) {
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return structuredClone(defaults);
-    const parsed = JSON.parse(raw);
+    if (!raw) return cloneDefaults();
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+      if (typeof parsed === "string") {
+        parsed = JSON.parse(parsed);
+      }
+    } catch {
+      parsed = null;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return cloneDefaults();
+    }
     if (parsed.preset === "neonSunset") {
       parsed.preset = "neonFlow";
     }
     const merged = {
-      ...structuredClone(defaults),
+      ...cloneDefaults(),
       ...parsed,
       warm: Array.isArray(parsed.warm) ? parsed.warm : defaults.warm,
       cool: Array.isArray(parsed.cool) ? parsed.cool : defaults.cool,
@@ -118,12 +142,14 @@ function loadState() {
     merged.presetVersion = PRESET_VERSION;
     return merged;
   } catch {
-    return structuredClone(defaults);
+    return cloneDefaults();
   }
 }
 
 function saveState(state) {
-  localStorage.setItem(KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {}
 }
 
 function fmt(n) {
@@ -145,7 +171,6 @@ const helloWrap = document.getElementById("helloWrap");
 const helloTitle = document.querySelector("#helloWrap .title");
 
 const uiPanel = document.getElementById("uiPanel");
-const panelBtn = document.getElementById("panelBtn");
 const resetBtn = document.getElementById("resetBtn");
 const helloTextInput = document.getElementById("helloText");
 const fontSizeSlider = document.getElementById("fontSize");
@@ -154,6 +179,7 @@ const presetSel = document.getElementById("preset");
 const actionTextBtn = document.getElementById("actionText");
 const actionUiBtn = document.getElementById("actionUi");
 const actionFullBtn = document.getElementById("actionFull");
+const actionPanelBtn = document.getElementById("actionPanel");
 
 const sliders = {
   warmR: document.getElementById("warmR"),
@@ -200,6 +226,7 @@ function applyTitleSettings() {
   state.helloText = text;
 
   helloTitle.textContent = text;
+  document.title = text || defaults.helloText;
   helloTitle.style.fontSize = `${size}px`;
   helloTitle.style.fontFamily = fontFamilies[familyKey];
 }
@@ -211,14 +238,22 @@ function setHelloVisible(visible) {
   } else {
     helloWrap.style.display = "none";
   }
+  document.title = state.helloText || defaults.helloText;
   saveState(state);
 }
 
-function setPanelCollapsed(collapsed) {
+function setPanelCollapsed(collapsed, options = {}) {
+  const { save = true } = options;
   state.panelCollapsed = collapsed;
   uiPanel.classList.toggle("collapsed", collapsed);
-  panelBtn.textContent = collapsed ? "Expand" : "Collapse";
-  saveState(state);
+  if (actionPanelBtn) {
+    const label = collapsed ? "Show panel" : "Hide panel";
+    actionPanelBtn.setAttribute("aria-label", label);
+    actionPanelBtn.setAttribute("title", `${label} (P)`);
+  }
+  if (save) {
+    saveState(state);
+  }
 }
 
 function syncValueReadoutsOnly() {
@@ -262,7 +297,7 @@ function syncUIFromState() {
   sliders.sparkPower.value = state.sparkPower;
 
   syncValueReadoutsOnly();
-  setPanelCollapsed(state.panelCollapsed);
+  setPanelCollapsed(state.panelCollapsed, { save: false });
 
   if (state.helloVisible) {
     helloWrap.style.display = "grid";
@@ -364,10 +399,8 @@ async function toggleFullscreen() {
   await document.exitFullscreen();
 }
 
-panelBtn.addEventListener("click", () => setPanelCollapsed(!state.panelCollapsed));
-
 resetBtn.addEventListener("click", () => {
-  state = structuredClone(defaults);
+  state = cloneDefaults();
   saveState(state);
   syncUIFromState();
 });
@@ -408,6 +441,12 @@ if (actionFullBtn) {
   });
 }
 
+if (actionPanelBtn) {
+  actionPanelBtn.addEventListener("click", () => {
+    setPanelCollapsed(!state.panelCollapsed);
+  });
+}
+
 presetSel.addEventListener("change", (event) => {
   const value = event.target.value;
   if (value === "custom") {
@@ -438,6 +477,10 @@ globalThis.addEventListener("keydown", (event) => {
   const tag = event.target?.tagName?.toLowerCase() ?? "";
   if (tag === "input" || tag === "select" || tag === "textarea") return;
 
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "r") {
+    return;
+  }
+
   const key = event.key.toLowerCase();
   if (key === "t") setHelloVisible(!state.helloVisible);
   if (key === "p") setPanelCollapsed(!state.panelCollapsed);
@@ -446,7 +489,7 @@ globalThis.addEventListener("keydown", (event) => {
   }
   if (key === "x") setUiHidden(!uiHidden);
   if (key === "r") {
-    state = structuredClone(defaults);
+    state = cloneDefaults();
     saveState(state);
     syncUIFromState();
   }

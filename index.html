@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Hello World</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -15,19 +16,19 @@
 
   <div class="vignette"></div>
 
-  <aside class="panel" id="uiPanel" aria-label="Palette controls">
-    <header>
-      <div>
-        <div class="titleText">Palette & Glow</div>
-        <div class="hint">T: text • P: panel • F: fullscreen • X: UI</div>
-      </div>
-      <div class="right">
-        <button id="resetBtn" type="button" title="Reset settings">Reset</button>
-        <button id="panelBtn" type="button" title="Collapse/expand (P)">Collapse</button>
-      </div>
-    </header>
+  <div class="fab-stack" id="fabStack" aria-label="Quick actions">
+    <aside class="panel" id="uiPanel" aria-label="Palette controls">
+      <header>
+        <div>
+          <div class="titleText">Palette & Glow</div>
+          <div class="hint">T: text • P: panel • F: fullscreen • X: UI</div>
+        </div>
+        <div class="right">
+          <button id="resetBtn" type="button" title="Reset settings">Reset</button>
+        </div>
+      </header>
 
-    <div class="body">
+      <div class="body">
       <div class="row">
         <label for="helloText">
           <span>Display Text</span>
@@ -122,13 +123,15 @@
         <label for="sparkPower"><span>Spark Power</span><span class="value" id="sparkPowerVal"></span></label>
         <input id="sparkPower" type="range" min="0.0" max="2.5" step="0.01" />
       </div>
-    </div>
-  </aside>
+      </div>
+    </aside>
 
-  <div class="mobile-actions" aria-label="Quick actions">
-    <button id="actionText" type="button" title="Toggle text (T)" aria-label="Toggle text">T</button>
-    <button id="actionUi" type="button" title="Toggle UI (X)" aria-label="Toggle UI"><span class="fab-icon">☰</span></button>
-    <button id="actionFull" type="button" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <div class="mobile-actions">
+      <button id="actionText" type="button" title="Toggle text (T)" aria-label="Toggle text">T</button>
+      <button id="actionUi" type="button" title="Toggle UI (X)" aria-label="Toggle UI">⊖</button>
+      <button id="actionFull" type="button" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+      <button id="actionPanel" type="button" title="Toggle panel (P)" aria-label="Toggle panel"><span class="fab-icon">☰</span></button>
+    </div>
   </div>
 
   <script src="./js/shaders.js"></script>
