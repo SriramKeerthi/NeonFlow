@@ -1,13 +1,12 @@
 const KEY = "neonSiteState.v1";
 const PRESET_VERSION = 7;
-const BUILD_UPDATED_AT = "2026-02-21 11:10";
 
 const defaults = {
   presetVersion: PRESET_VERSION,
   helloVisible: true,
   helloText: "Hello World",
   fontSize: 84,
-  fontFamily: "system",
+  fontFamily: "atelier",
   panelCollapsed: false,
   preset: "neonFlow",
   warm: [1.62, 0.06, 0.01],
@@ -69,6 +68,21 @@ const presets = {
   }
 };
 
+const fontFamilies = {
+  atelier: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial",
+  noir: "'Helvetica Neue', Helvetica, 'SF Pro Display', ui-sans-serif, system-ui",
+  luxe: "ui-serif, 'Times New Roman', Times, Georgia, serif",
+  gallery: "'Palatino', 'Palatino Linotype', 'Book Antiqua', ui-serif, serif",
+  editorial: "'Baskerville', 'Baskerville Old Face', 'Garamond', 'Times New Roman', serif",
+  studio: "'Avenir Next', 'Avenir', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui",
+  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
+};
+
+function normalizeFontFamily(value) {
+  return fontFamilies[value] ? value : defaults.fontFamily;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -84,6 +98,8 @@ function loadState() {
       cool: Array.isArray(parsed.cool) ? parsed.cool : defaults.cool,
       spark: Array.isArray(parsed.spark) ? parsed.spark : defaults.spark
     };
+
+    merged.fontFamily = normalizeFontFamily(merged.fontFamily);
 
     if (merged.preset !== "custom" && !presets[merged.preset]) {
       merged.preset = defaults.preset;
@@ -170,23 +186,12 @@ const vals = {
   sparkPowerVal: document.getElementById("sparkPowerVal")
 };
 
-const fontFamilies = {
-  atelier: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial",
-  noir: "'Helvetica Neue', Helvetica, 'SF Pro Display', ui-sans-serif, system-ui",
-  luxe: "ui-serif, 'Times New Roman', Times, Georgia, serif",
-  gallery: "'Palatino', 'Palatino Linotype', 'Book Antiqua', ui-serif, serif",
-  editorial: "'Baskerville', 'Baskerville Old Face', 'Garamond', 'Times New Roman', serif",
-  studio: "'Avenir Next', 'Avenir', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui",
-  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
-};
-
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
 function applyTitleSettings() {
-  const familyKey = fontFamilies[state.fontFamily] ? state.fontFamily : defaults.fontFamily;
+  const familyKey = normalizeFontFamily(state.fontFamily);
   const size = clamp(Number(state.fontSize) || defaults.fontSize, 32, 160);
   const text = typeof state.helloText === "string" ? state.helloText : defaults.helloText;
 
@@ -203,12 +208,8 @@ function setHelloVisible(visible) {
   state.helloVisible = visible;
   if (visible) {
     helloWrap.style.display = "grid";
-    requestAnimationFrame(() => helloWrap.classList.remove("is-hidden"));
   } else {
-    helloWrap.classList.add("is-hidden");
-    globalThis.setTimeout(() => {
-      if (!state.helloVisible) helloWrap.style.display = "none";
-    }, 280);
+    helloWrap.style.display = "none";
   }
   saveState(state);
 }
@@ -239,6 +240,7 @@ function syncValueReadoutsOnly() {
 function syncUIFromState() {
   helloTextInput.value = state.helloText;
   fontSizeSlider.value = state.fontSize;
+  state.fontFamily = normalizeFontFamily(state.fontFamily);
   fontFamilySel.value = state.fontFamily;
 
   presetSel.value = state.preset;
@@ -264,10 +266,8 @@ function syncUIFromState() {
 
   if (state.helloVisible) {
     helloWrap.style.display = "grid";
-    helloWrap.classList.remove("is-hidden");
   } else {
     helloWrap.style.display = "none";
-    helloWrap.classList.add("is-hidden");
   }
 
   applyTitleSettings();
@@ -313,7 +313,9 @@ function setUiHidden(hidden) {
   uiHidden = hidden;
   document.body.classList.toggle("ui-hidden", hidden);
   if (actionUiBtn) {
-    actionUiBtn.textContent = uiHidden ? "Show" : "UI";
+    const label = uiHidden ? "Show UI" : "Hide UI";
+    actionUiBtn.setAttribute("aria-label", label);
+    actionUiBtn.setAttribute("title", `${label} (X)`);
   }
 }
 
@@ -437,7 +439,7 @@ globalThis.addEventListener("keydown", (event) => {
   if (tag === "input" || tag === "select" || tag === "textarea") return;
 
   const key = event.key.toLowerCase();
-  if (key === "h") setHelloVisible(!state.helloVisible);
+  if (key === "t") setHelloVisible(!state.helloVisible);
   if (key === "p") setPanelCollapsed(!state.panelCollapsed);
   if (key === "f") {
     toggleFullscreen().catch(() => {});
