@@ -1,8 +1,5 @@
 const KEY = "neonSiteState.v1";
-const PRESET_VERSION = 7;
-
 const defaults = {
-  presetVersion: PRESET_VERSION,
   helloVisible: true,
   helloText: "Neon Flow",
   fontSize: 84,
@@ -77,6 +74,14 @@ const presets = {
     brightness: 1.08,
     saturation: 1.66,
     sparkPower: 0.84
+  },
+  neonSunset: {
+    warm: [1.2, 0.22, 0.1],
+    cool: [0.12, 0.3, 1.25],
+    spark: [1.35, 1.18, 0.12],
+    brightness: 1.25,
+    saturation: 1.25,
+    sparkPower: 1.1
   }
 };
 
@@ -91,10 +96,6 @@ const fontFamilies = {
   condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
 };
 
-function normalizeFontFamily(value) {
-  return fontFamilies[value] ? value : defaults.fontFamily;
-}
-
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -102,46 +103,15 @@ function loadState() {
     let parsed = null;
     try {
       parsed = JSON.parse(raw);
-      if (typeof parsed === "string") {
-        parsed = JSON.parse(parsed);
-      }
     } catch {
       parsed = null;
     }
-
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return cloneDefaults();
-    }
-    if (parsed.preset === "neonSunset") {
-      parsed.preset = "neonFlow";
-    }
-    const merged = {
+    return {
       ...cloneDefaults(),
-      ...parsed,
-      warm: Array.isArray(parsed.warm) ? parsed.warm : defaults.warm,
-      cool: Array.isArray(parsed.cool) ? parsed.cool : defaults.cool,
-      spark: Array.isArray(parsed.spark) ? parsed.spark : defaults.spark
+      ...parsed
     };
-
-    merged.fontFamily = normalizeFontFamily(merged.fontFamily);
-
-    if (merged.preset !== "custom" && !presets[merged.preset]) {
-      merged.preset = defaults.preset;
-    }
-
-    if ((parsed.presetVersion ?? 0) < PRESET_VERSION && merged.preset !== "custom" && presets[merged.preset]) {
-      const preset = presets[merged.preset];
-      merged.warm = [...preset.warm];
-      merged.cool = [...preset.cool];
-      merged.spark = [...preset.spark];
-      merged.brightness = preset.brightness;
-      merged.saturation = preset.saturation;
-      merged.sparkPower = preset.sparkPower;
-    }
-
-    merged.presetVersion = PRESET_VERSION;
-    return merged;
-  } catch {
+  } catch (error) {
+    console.error("Hello, developer! Nice to see you here, something seems off!", "\n  (\"^_^\")", "\nFailed to load saved state", error);
     return cloneDefaults();
   }
 }
@@ -217,7 +187,7 @@ function clamp(n, min, max) {
 }
 
 function applyTitleSettings() {
-  const familyKey = normalizeFontFamily(state.fontFamily);
+  const familyKey = state.fontFamily;
   const size = clamp(Number(state.fontSize) || defaults.fontSize, 32, 160);
   const text = typeof state.helloText === "string" ? state.helloText : defaults.helloText;
 
@@ -275,7 +245,6 @@ function syncValueReadoutsOnly() {
 function syncUIFromState() {
   helloTextInput.value = state.helloText;
   fontSizeSlider.value = state.fontSize;
-  state.fontFamily = normalizeFontFamily(state.fontFamily);
   fontFamilySel.value = state.fontFamily;
 
   presetSel.value = state.preset;
@@ -312,7 +281,6 @@ function syncUIFromState() {
 function applyPreset(name) {
   if (!presets[name]) return;
   const preset = presets[name];
-  state.presetVersion = PRESET_VERSION;
   state.preset = name;
   state.warm = [...preset.warm];
   state.cool = [...preset.cool];
