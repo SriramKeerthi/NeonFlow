@@ -4,7 +4,7 @@ const PRESET_VERSION = 7;
 const defaults = {
   presetVersion: PRESET_VERSION,
   helloVisible: true,
-  helloText: "Hello World",
+  helloText: "Neon Flow",
   fontSize: 84,
   fontFamily: "atelier",
   panelCollapsed: false,
