@@ -135,6 +135,9 @@ const helloTextInput = document.getElementById("helloText");
 const fontSizeSlider = document.getElementById("fontSize");
 const fontFamilySel = document.getElementById("fontFamily");
 const presetSel = document.getElementById("preset");
+const actionTextBtn = document.getElementById("actionText");
+const actionUiBtn = document.getElementById("actionUi");
+const actionFullBtn = document.getElementById("actionFull");
 
 const sliders = {
   warmR: document.getElementById("warmR"),
@@ -168,10 +171,14 @@ const vals = {
 };
 
 const fontFamilies = {
-  system: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
-  serif: "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif",
+  atelier: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial",
+  noir: "'Helvetica Neue', Helvetica, 'SF Pro Display', ui-sans-serif, system-ui",
+  luxe: "ui-serif, 'Times New Roman', Times, Georgia, serif",
+  gallery: "'Palatino', 'Palatino Linotype', 'Book Antiqua', ui-serif, serif",
+  editorial: "'Baskerville', 'Baskerville Old Face', 'Garamond', 'Times New Roman', serif",
+  studio: "'Avenir Next', 'Avenir', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui",
   mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  display: "'Trebuchet MS', 'Segoe UI', Verdana, sans-serif"
+  condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
 };
 
 function clamp(n, min, max) {
@@ -305,6 +312,46 @@ function bindSlider(slider, onChange) {
 function setUiHidden(hidden) {
   uiHidden = hidden;
   document.body.classList.toggle("ui-hidden", hidden);
+  if (actionUiBtn) {
+    actionUiBtn.textContent = uiHidden ? "Show" : "UI";
+  }
+}
+
+function toggleUiHidden() {
+  setUiHidden(!uiHidden);
+}
+
+let shakeEnabled = false;
+let lastShakeAt = 0;
+
+function handleShake(event) {
+  if (!uiHidden) return;
+  const acc = event.accelerationIncludingGravity;
+  if (!acc) return;
+  const ax = acc.x || 0;
+  const ay = acc.y || 0;
+  const az = acc.z || 0;
+  const magnitude = Math.hypot(ax, ay, az);
+  if (magnitude > 20 && performance.now() - lastShakeAt > 1200) {
+    lastShakeAt = performance.now();
+    setUiHidden(false);
+  }
+}
+
+function enableShake() {
+  if (shakeEnabled) return;
+  const motion = globalThis.DeviceMotionEvent;
+  if (motion && typeof motion.requestPermission === "function") {
+    motion.requestPermission().then((state) => {
+      if (state === "granted") {
+        globalThis.addEventListener("devicemotion", handleShake, { passive: true });
+        shakeEnabled = true;
+      }
+    }).catch(() => {});
+    return;
+  }
+  globalThis.addEventListener("devicemotion", handleShake, { passive: true });
+  shakeEnabled = true;
 }
 
 async function toggleFullscreen() {
@@ -341,6 +388,23 @@ fontFamilySel.addEventListener("change", () => {
   saveState(state);
   applyTitleSettings();
 });
+
+if (actionTextBtn) {
+  actionTextBtn.addEventListener("click", () => setHelloVisible(!state.helloVisible));
+}
+
+if (actionUiBtn) {
+  actionUiBtn.addEventListener("click", () => {
+    toggleUiHidden();
+    enableShake();
+  });
+}
+
+if (actionFullBtn) {
+  actionFullBtn.addEventListener("click", () => {
+    toggleFullscreen().catch(() => {});
+  });
+}
 
 presetSel.addEventListener("change", (event) => {
   const value = event.target.value;
@@ -385,6 +449,19 @@ globalThis.addEventListener("keydown", (event) => {
     syncUIFromState();
   }
 });
+
+let lastTapAt = 0;
+globalThis.addEventListener("touchend", () => {
+  const now = performance.now();
+  if (now - lastTapAt < 280) {
+    if (uiHidden) setUiHidden(false);
+  }
+  lastTapAt = now;
+}, { passive: true });
+
+globalThis.addEventListener("touchstart", () => {
+  enableShake();
+}, { passive: true, once: true });
 
 syncUIFromState();
 renderer.start();

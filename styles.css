@@ -57,26 +57,6 @@ html, body {
   mix-blend-mode: multiply;
 }
 
-/* Toggle button */
-#toggleHello {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-  z-index: 20;
-  font-size: 14px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(0,0,0,0.35);
-  color: rgba(255,255,255,0.95);
-  backdrop-filter: blur(8px) saturate(150%);
-  cursor: pointer;
-  user-select: none;
-  transition: transform .15s ease, background .2s ease;
-}
-#toggleHello:hover { transform: translateY(-1px); background: rgba(0,0,0,0.52); }
-#toggleHello:active { transform: translateY(0px) scale(0.98); }
-
 /* UI Panel */
 .panel {
   position: fixed;
@@ -84,7 +64,7 @@ html, body {
   bottom: 18px;
   z-index: 20;
   width: min(300px, calc(100vw - 24px));
-  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
   display: flex;
   flex-direction: column;
   border-radius: 18px;
@@ -146,6 +126,7 @@ html, body {
   display: grid;
   gap: 8px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
 }
 .row { display: grid; gap: 6px; }
@@ -175,6 +156,52 @@ input[type="text"] {
 .panel.collapsed .body { display: none; }
 
 body.ui-hidden .vignette,
-body.ui-hidden .panel {
+body.ui-hidden .panel,
+body.ui-hidden .mobile-actions {
   display: none !important;
+}
+
+.mobile-actions {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 25;
+  display: none;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px) saturate(140%);
+}
+
+.mobile-actions button {
+  border: 1px solid rgba(255,255,255,0.24);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.94);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mobile-actions button:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 640px) {
+  .panel {
+    left: 12px;
+    bottom: 12px;
+    width: min(280px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  .panel .body {
+    padding: 8px;
+    gap: 6px;
+  }
+  .panel header .titleText { font-size: 13px; }
+  .panel header .hint { font-size: 10px; }
+  .row label { font-size: 10px; }
+  .mobile-actions { display: flex; }
 }
