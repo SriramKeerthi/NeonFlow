@@ -1,0 +1,180 @@
+:root { color-scheme: dark; }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+/* Fullscreen animated background */
+#bg { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+/* Foreground content */
+.content {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+.content.is-hidden {
+  opacity: 0;
+}
+/* When hidden, allow clicks to pass through without selecting text */
+.content.is-hidden .title { filter: blur(0.5px); }
+
+.title {
+  font-size: clamp(48px, 8vw, 110px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow:
+    0 2px 18px rgba(0,0,0,0.35),
+    0 0 44px rgba(255, 0, 255, 0.45),
+    0 0 64px rgba(0, 150, 255, 0.30);
+  padding: 24px 32px;
+  border-radius: 24px;
+  backdrop-filter: blur(10px) saturate(160%);
+  background: rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.22);
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(circle at 50% 45%,
+      rgba(0,0,0,0.00) 0%,
+      rgba(0,0,0,0.24) 72%,
+      rgba(0,0,0,0.44) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* Toggle button */
+#toggleHello {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 20;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.95);
+  backdrop-filter: blur(8px) saturate(150%);
+  cursor: pointer;
+  user-select: none;
+  transition: transform .15s ease, background .2s ease;
+}
+#toggleHello:hover { transform: translateY(-1px); background: rgba(0,0,0,0.52); }
+#toggleHello:active { transform: translateY(0px) scale(0.98); }
+
+/* UI Panel */
+.panel {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 20;
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.38);
+  backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+  color: rgba(255,255,255,0.92);
+}
+.panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.14);
+}
+.panel header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.panel header .titleText {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.panel header .hint {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.panel header .right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.panel button {
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.45);
+  color: rgba(255,255,255,0.98);
+  border-radius: 999px;
+  padding: 6px 9px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background .2s ease, transform .15s ease;
+  user-select: none;
+}
+.panel button:hover { background: rgba(0,0,0,0.6); transform: translateY(-1px); }
+.panel button:active { transform: translateY(0) scale(0.98); }
+
+.panel .body {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.row { display: grid; gap: 6px; }
+.row label {
+  font-size: 11px;
+  opacity: 0.86;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.row label span.value { font-variant-numeric: tabular-nums; opacity: 0.9; }
+
+select, input[type="range"], input[type="text"] {
+  width: 100%;
+  accent-color: #ff00d4;
+}
+
+input[type="text"] {
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.3);
+  color: rgba(255,255,255,0.96);
+  padding: 8px 10px;
+}
+
+.panel.collapsed .body { display: none; }
+
+body.ui-hidden .vignette,
+body.ui-hidden .panel {
+  display: none !important;
+}
