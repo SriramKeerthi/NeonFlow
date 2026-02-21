@@ -2,7 +2,7 @@
 
 Published site: https://neon.kunjathur.com
 
-Neon Flow is a simple, flowly neon signage app that renders animated neon palettes and lets you tweak the glow, colors, and typography.
+Neon Flow is a simple, flowy neon signage app that renders animated neon palettes and lets you tweak the glow, colors, and typography.
 
 ## Features
 
