@@ -5,6 +5,7 @@ const defaults = {
   fontSize: 84,
   fontFamily: "script",
   textAlign: "center",
+  videoResolution: 1080,
   invertMode: false,
   invertColor: "#f4f1ec",
   panelCollapsed: false,
@@ -183,6 +184,20 @@ if (!renderer.supported) {
 
 let state = loadState();
 let uiHidden = false;
+const CAPTURE_QUALITY = 0.92;
+const MAX_RECORD_MS = 60000;
+const RECORD_FPS = 30;
+let recordState = {
+  recorder: null,
+  chunks: [],
+  stopTimer: 0,
+  drawRaf: 0,
+  captureCanvas: null,
+  ctx: null,
+  mimeType: "",
+  extension: "webm"
+};
+const VIDEO_RESOLUTION_STOPS = [480, 1080, 2160];
 
 const uiPanel = document.getElementById("uiPanel");
 const resetBtn = document.getElementById("resetBtn");
@@ -191,6 +206,7 @@ const invertColorInput = document.getElementById("invertColor");
 const invertColorLabel = document.getElementById("invertColorLabel");
 const fontSizeSlider = document.getElementById("fontSize");
 const fontFamilySel = document.getElementById("fontFamily");
+const videoResolutionSlider = document.getElementById("videoResolution");
 const textAlignGroup = document.getElementById("textAlign");
 const textAlignButtons = textAlignGroup
   ? Array.from(textAlignGroup.querySelectorAll("[data-align]"))
@@ -201,6 +217,8 @@ const actionInvertBtn = document.getElementById("actionInvert");
 const actionUiBtn = document.getElementById("actionUi");
 const actionFullBtn = document.getElementById("actionFull");
 const actionPanelBtn = document.getElementById("actionPanel");
+const actionCaptureBtn = document.getElementById("actionCapture");
+const actionRecordBtn = document.getElementById("actionRecord");
 
 const sliders = {
   warmR: document.getElementById("warmR"),
@@ -235,6 +253,152 @@ const vals = {
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function getVideoBitrate(height) {
+  if (height >= 2160) return 35000000;
+  if (height >= 1080) return 12000000;
+  return 4000000;
+}
+
+function buildCaptureCanvas() {
+  const targetH = clamp(Number(state.videoResolution) || 1080, 480, 2160);
+  const targetW = Math.round(targetH * (16 / 9));
+  const scale = Math.min(1, canvas.width / targetW, canvas.height / targetH);
+  const width = Math.max(1, Math.round(targetW * scale));
+  const height = Math.max(1, Math.round(targetH * scale));
+  const captureCanvas = document.createElement("canvas");
+  captureCanvas.width = width;
+  captureCanvas.height = height;
+  const ctx = captureCanvas.getContext("2d");
+  return { captureCanvas, ctx };
+}
+
+function drawCaptureFrame() {
+  if (!recordState.ctx || !recordState.captureCanvas) return;
+  const { ctx, captureCanvas } = recordState;
+  const targetW = captureCanvas.width;
+  const targetH = captureCanvas.height;
+  const sourceW = canvas.width;
+  const sourceH = canvas.height;
+  if (!sourceW || !sourceH) return;
+  const targetAspect = targetW / targetH;
+  const sourceAspect = sourceW / sourceH;
+  let srcW = sourceW;
+  let srcH = sourceH;
+  let srcX = 0;
+  let srcY = 0;
+  if (sourceAspect > targetAspect) {
+    srcW = sourceH * targetAspect;
+    srcX = (sourceW - srcW) * 0.5;
+  } else {
+    srcH = sourceW / targetAspect;
+    srcY = (sourceH - srcH) * 0.5;
+  }
+  ctx.clearRect(0, 0, targetW, targetH);
+  ctx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
+}
+
+async function captureFrame() {
+  const blob = await new Promise((resolve) => {
+    canvas.toBlob(resolve, "image/webp", CAPTURE_QUALITY);
+  });
+  if (!blob) return;
+  downloadBlob(blob, `neon-flow-${Date.now()}.webp`);
+}
+
+function getRecorderMime() {
+  if (typeof MediaRecorder === "undefined") return { mimeType: "", extension: "webm" };
+  if (MediaRecorder.isTypeSupported("video/webp")) {
+    return { mimeType: "video/webp", extension: "webp" };
+  }
+  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+    return { mimeType: "video/webm;codecs=vp9", extension: "webm" };
+  }
+  return { mimeType: "video/webm", extension: "webm" };
+}
+
+function stopRecording() {
+  if (!recordState.recorder) return;
+  if (recordState.stopTimer) {
+    clearTimeout(recordState.stopTimer);
+  }
+  if (recordState.drawRaf) {
+    cancelAnimationFrame(recordState.drawRaf);
+  }
+  recordState.recorder.stop();
+  recordState.stopTimer = 0;
+  recordState.drawRaf = 0;
+  if (actionRecordBtn) {
+    actionRecordBtn.classList.remove("is-recording");
+  }
+}
+
+function startRecording() {
+  if (typeof MediaRecorder === "undefined") {
+    console.warn("Recording not supported in this browser.");
+    return;
+  }
+  if (recordState.recorder) return;
+  const { captureCanvas, ctx } = buildCaptureCanvas();
+  const { mimeType, extension } = getRecorderMime();
+  const bitrate = getVideoBitrate(captureCanvas.height);
+  recordState.captureCanvas = captureCanvas;
+  recordState.ctx = ctx;
+  recordState.chunks = [];
+  recordState.mimeType = mimeType;
+  recordState.extension = extension;
+  const stream = captureCanvas.captureStream(RECORD_FPS);
+  const recorder = new MediaRecorder(
+    stream,
+    mimeType ? { mimeType, videoBitsPerSecond: bitrate } : { videoBitsPerSecond: bitrate }
+  );
+  recordState.recorder = recorder;
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size) {
+      recordState.chunks.push(event.data);
+    }
+  };
+
+  recorder.onstop = () => {
+    const blob = new Blob(recordState.chunks, { type: recordState.mimeType || "video/webm" });
+    downloadBlob(blob, `neon-flow-${Date.now()}.${recordState.extension}`);
+    recordState.recorder = null;
+    recordState.chunks = [];
+    recordState.captureCanvas = null;
+    recordState.ctx = null;
+  };
+
+  const drawLoop = () => {
+    drawCaptureFrame();
+    recordState.drawRaf = requestAnimationFrame(drawLoop);
+  };
+  drawLoop();
+  recorder.start(200);
+  recordState.stopTimer = setTimeout(() => stopRecording(), MAX_RECORD_MS);
+  if (actionRecordBtn) {
+    actionRecordBtn.classList.add("is-recording");
+  }
+}
+
+function toggleRecording() {
+  if (recordState.recorder) {
+    stopRecording();
+    return;
+  }
+  startRecording();
 }
 
 function normalizeHex(value) {
@@ -612,6 +776,11 @@ function syncUIFromState() {
   helloTextInput.value = state.helloText;
   fontSizeSlider.value = state.fontSize;
   fontFamilySel.value = state.fontFamily;
+  if (videoResolutionSlider) {
+    const current = Number(state.videoResolution) || 1080;
+    const index = VIDEO_RESOLUTION_STOPS.indexOf(current);
+    videoResolutionSlider.value = String(index === -1 ? 1 : index);
+  }
   const currentAlign = state.textAlign || defaults.textAlign;
   if (textAlignButtons.length) {
     textAlignButtons.forEach((btn) => {
@@ -754,6 +923,15 @@ fontSizeSlider.addEventListener("input", () => {
   vals.fontSizeVal.textContent = `${Math.round(state.fontSize)}px`;
 });
 
+if (videoResolutionSlider) {
+  videoResolutionSlider.addEventListener("input", () => {
+    const index = Number.parseInt(videoResolutionSlider.value, 10) || 0;
+    state.videoResolution = VIDEO_RESOLUTION_STOPS[clamp(index, 0, VIDEO_RESOLUTION_STOPS.length - 1)];
+    saveState(state);
+    syncValueReadoutsOnly();
+  });
+}
+
 fontFamilySel.addEventListener("change", () => {
   state.fontFamily = fontFamilySel.value;
   saveState(state);
@@ -802,6 +980,18 @@ if (actionPanelBtn) {
   });
 }
 
+if (actionCaptureBtn) {
+  actionCaptureBtn.addEventListener("click", () => {
+    captureFrame().catch(() => {});
+  });
+}
+
+if (actionRecordBtn) {
+  actionRecordBtn.addEventListener("click", () => {
+    toggleRecording();
+  });
+}
+
 presetSel.addEventListener("change", (event) => {
   const value = event.target.value;
   if (value === "custom") {
@@ -844,6 +1034,12 @@ globalThis.addEventListener("keydown", (event) => {
   }
   if (key === "x") setUiHidden(!uiHidden);
   if (key === "i") setInvertMode(!state.invertMode);
+  if (key === "c") {
+    captureFrame().catch(() => {});
+  }
+  if (key === "v") {
+    toggleRecording();
+  }
   if (key === "r") {
     state = cloneDefaults();
     saveState(state);

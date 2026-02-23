@@ -34,7 +34,7 @@
       <header>
         <div>
           <div class="titleText">Palette & Glow</div>
-          <div class="hint">T: text • P: panel • F: fullscreen • X: UI • I: invert</div>
+          <div class="hint">C: capture • V: record • T: text • P: panel • F: fullscreen • X: UI • I: invert</div>
         </div>
         <div class="right">
           <button id="resetBtn" type="button" title="Reset settings">Reset</button>
@@ -61,6 +61,16 @@
       <div class="row">
         <label for="fontSize"><span>Font Size</span><span class="value" id="fontSizeVal"></span></label>
         <input id="fontSize" type="range" min="32" max="160" step="1" />
+      </div>
+
+      <div class="row">
+        <label for="videoResolution"><span>Video Resolution</span></label>
+        <input id="videoResolution" type="range" min="0" max="2" step="1" list="videoResolutionStops" />
+        <datalist id="videoResolutionStops">
+          <option value="0" label="480p"></option>
+          <option value="1" label="1080p"></option>
+          <option value="2" label="4K"></option>
+        </datalist>
       </div>
 
       <div class="row">
@@ -187,6 +197,16 @@
     </aside>
 
     <div class="mobile-actions">
+      <button id="actionCapture" type="button" title="Capture frame (C)" aria-label="Capture frame">
+        <svg class="fab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3" y="7" width="18" height="12" rx="3"></rect>
+          <rect x="7" y="5" width="4" height="2" rx="1"></rect>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </button>
+      <button id="actionRecord" class="record-btn" type="button" title="Record video (V)" aria-label="Record video">
+        <span class="record-dot" aria-hidden="true"></span>
+      </button>
       <button id="actionText" type="button" title="Toggle text (T)" aria-label="Toggle text">T</button>
       <button id="actionInvert" type="button" title="Invert mask (I)" aria-label="Invert mask">◐</button>
       <button id="actionUi" type="button" title="Toggle UI (X)" aria-label="Toggle UI">⊖</button>

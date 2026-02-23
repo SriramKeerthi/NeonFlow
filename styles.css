@@ -135,6 +135,14 @@ select, input[type="range"], input[type="text"] {
   accent-color: #ff00d4;
 }
 
+datalist#videoResolutionStops {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: rgba(255,255,255,0.6);
+  font-size: 10px;
+}
+
 .align-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -245,6 +253,35 @@ body.invert-mode #bg {
   line-height: 1;
   text-align: center;
   cursor: pointer;
+}
+
+.mobile-actions .fab-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.record-btn {
+  position: relative;
+}
+
+.record-btn .record-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  display: inline-block;
+}
+
+.record-btn.is-recording {
+  background: rgba(255, 35, 35, 0.2);
+  border-color: rgba(255, 35, 35, 0.65);
+  color: #fff;
+}
+
+.record-btn.is-recording .record-dot {
+  background: #ff2b2b;
+  box-shadow: 0 0 12px rgba(255, 43, 43, 0.6);
 }
 
 .mobile-actions button:active {

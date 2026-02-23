@@ -326,7 +326,12 @@ function createCardRenderer(gl) {
 }
 
 function createRenderer(canvas) {
-  const gl = canvas.getContext("webgl", { antialias: false, premultipliedAlpha: false, stencil: true });
+  const gl = canvas.getContext("webgl", {
+    antialias: false,
+    premultipliedAlpha: false,
+    stencil: true,
+    preserveDrawingBuffer: true
+  });
 
   if (!gl) {
     return { supported: false };
