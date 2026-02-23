@@ -3,7 +3,7 @@ const defaults = {
   helloVisible: true,
   helloText: "Neon Flow",
   fontSize: 84,
-  fontFamily: "inter",
+  fontFamily: "script",
   textAlign: "center",
   invertMode: false,
   invertColor: "#f4f1ec",
@@ -261,7 +261,7 @@ function getTextMaxWidth() {
 }
 
 function getFontFamily(key) {
-  return fontFamilies[key] || fontFamilies.inter;
+  return fontFamilies[key] || fontFamilies.script;
 }
 
 function getFontWeight(key) {
@@ -441,16 +441,18 @@ function updateCanvasText() {
           }).catch(() => {});
         };
 
+        const maxLineWidthDpr = Math.max(0, maxCardWidth - padXDpr * 2 - shadowPadDpr * 2);
+        const wrapMaxWidthDpr = Math.max(0, maxLineWidthDpr + wrapBufferDpr);
         renderer.measureTextState({
           text,
           fontKey,
           fontSize: fontSize * dpr,
-          maxWidth: layoutMaxWidthDpr + wrapBufferDpr,
+          maxWidth: wrapMaxWidthDpr,
           align
         }).then((msdfMetrics) => {
           if (!msdfMetrics || token !== msdfMeasureToken) return;
           const hasManualBreak = String(text).includes("\n");
-          if (!hasManualBreak && msdfMetrics.lineCount > 1) {
+          if (!hasManualBreak) {
             renderer.measureTextState({
               text,
               fontKey,
@@ -459,12 +461,16 @@ function updateCanvasText() {
               align
             }).then((nowrapMetrics) => {
               if (!nowrapMetrics) return;
-              const tolerance = 2;
-              if (nowrapMetrics.blockWidth <= layoutMaxWidthDpr + wrapBufferDpr + tolerance) {
+              const tolerance = 12 * dpr;
+              if (nowrapMetrics.blockWidth <= maxLineWidthDpr + tolerance) {
                 applyMetrics(nowrapMetrics);
                 return;
               }
-              applyMetrics(msdfMetrics);
+              if (msdfMetrics.lineCount > 1) {
+                applyMetrics(msdfMetrics);
+                return;
+              }
+              applyMetrics(nowrapMetrics);
             }).catch(() => {});
             return;
           }

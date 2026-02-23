@@ -424,7 +424,7 @@ function createRenderer(canvas) {
   };
   const textState = {
     text: "",
-    fontKey: "inter",
+    fontKey: "script",
     fontSize: 84,
     color: [1, 1, 1, 1],
     align: "left",
