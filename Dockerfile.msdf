@@ -1,0 +1,17 @@
+FROM node:20-trixie-slim AS msdf-base
+
+RUN apt-get update \
+	&& apt-get install -y python3 make g++ git ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g msdf-bmfont-xml
+
+FROM node:20-trixie-slim AS msdf-runtime
+
+RUN apt-get update \
+	&& apt-get install -y python3 \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY --from=msdf-base /usr/local /usr/local
+
+WORKDIR /work

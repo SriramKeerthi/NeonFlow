@@ -3,7 +3,8 @@ const defaults = {
   helloVisible: true,
   helloText: "Neon Flow",
   fontSize: 84,
-  fontFamily: "atelier",
+  fontFamily: "inter",
+  textAlign: "center",
   invertMode: false,
   invertColor: "#f4f1ec",
   panelCollapsed: false,
@@ -88,23 +89,59 @@ const presets = {
 };
 
 const fontFamilies = {
-  atelier: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial",
-  noir: "'Helvetica Neue', Helvetica, 'SF Pro Display', ui-sans-serif, system-ui",
-  luxe: "ui-serif, 'Times New Roman', Times, Georgia, serif",
-  gallery: "'Palatino', 'Palatino Linotype', 'Book Antiqua', ui-serif, serif",
-  editorial: "'Baskerville', 'Baskerville Old Face', 'Garamond', 'Times New Roman', serif",
-  studio: "'Avenir Next', 'Avenir', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui",
-  rounded: "'Avenir Next Rounded', 'SF Pro Rounded', 'Arial Rounded MT Bold', ui-sans-serif, system-ui",
-  classic: "'Iowan Old Style', 'Palatino', 'Book Antiqua', 'Times New Roman', serif",
-  slab: "'Rockwell', 'Rockwell Nova', 'Roboto Slab', 'Times New Roman', serif",
-  script: "'Snell Roundhand', 'Zapfino', 'Apple Chancery', 'Brush Script MT', cursive",
+  inter: "'Inter', 'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui",
+  raleway: "'Raleway', 'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui",
+  playfair: "'Playfair Display', 'Times New Roman', Georgia, ui-serif, serif",
+  fraunces: "'Fraunces', 'Times New Roman', Georgia, ui-serif, serif",
+  slab: "'Roboto Slab', 'Times New Roman', Georgia, ui-serif, serif",
+  rounded: "'Nunito', 'Avenir Next Rounded', 'SF Pro Rounded', ui-sans-serif, system-ui",
+  script: "'Pacifico', 'Brush Script MT', 'Snell Roundhand', cursive",
+  mono: "'Space Mono', 'SF Mono', 'Courier New', ui-monospace, monospace",
   wide: "'Unbounded', 'Arial Black', 'Impact', 'Haettenschweiler', ui-sans-serif, system-ui",
   stencil: "'Black Ops One', 'Stencil', 'Stencil Std', 'Impact', sans-serif",
   blackletter: "'UnifrakturMaguntia', 'UnifrakturCook', 'Old English Text MT', 'Goudy Text', serif",
-  pixel: "'Silkscreen', 'Press Start 2P', 'Pixel', 'SF Mono', 'Courier New', ui-monospace, monospace",
-  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  condensed: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', ui-sans-serif, system-ui"
+  pixel: "'Silkscreen', 'Press Start 2P', 'Pixel', 'SF Mono', 'Courier New', ui-monospace, monospace"
 };
+
+const TITLE_WEIGHT = 800;
+const TITLE_LINE_HEIGHT = 1.1;
+const fontWeights = {
+  stencil: 400
+};
+const CARD_STYLE = {
+  paddingX: 32,
+  paddingY: 24,
+  radius: 24,
+  borderWidth: 0.4,
+  fill: [1, 1, 1, 0],
+  border: [1, 1, 1, 0.2],
+  blurAlpha: 0.95,
+  shadowColor: [0, 0, 0, 1],
+  shadowAlpha: 0.06,
+  shadowBlur: 32,
+  shadowOffset: [0, 0]
+};
+const TEXT_GLOW = {
+  color: [0.95, 0.6, 1, 1],
+  alpha: 0,
+  range: 12,
+  shadowColor: [0, 0, 0, 1],
+  shadowAlpha: 0.16,
+  shadowOffset: [0, 0],
+  shadowPad: 8
+};
+const measureCanvas = document.createElement("canvas");
+const measureCtx = measureCanvas.getContext("2d");
+let fontLoadToken = 0;
+let msdfMeasureToken = 0;
+
+function waitForFontLoad(fontSpec) {
+  if (!document.fonts || typeof document.fonts.load !== "function") {
+    return Promise.resolve(false);
+  }
+  return document.fonts.load(fontSpec).then(() => true).catch(() => false);
+}
+
 
 function loadState() {
   try {
@@ -147,13 +184,6 @@ if (!renderer.supported) {
 let state = loadState();
 let uiHidden = false;
 
-const helloWrap = document.getElementById("helloWrap");
-const helloTitle = document.querySelector("#helloWrap .title");
-const maskLayer = document.getElementById("maskLayer");
-const maskSvg = document.getElementById("maskSvg");
-const maskText = document.getElementById("maskText");
-const maskRect = document.getElementById("maskRect");
-
 const uiPanel = document.getElementById("uiPanel");
 const resetBtn = document.getElementById("resetBtn");
 const helloTextInput = document.getElementById("helloText");
@@ -161,6 +191,10 @@ const invertColorInput = document.getElementById("invertColor");
 const invertColorLabel = document.getElementById("invertColorLabel");
 const fontSizeSlider = document.getElementById("fontSize");
 const fontFamilySel = document.getElementById("fontFamily");
+const textAlignGroup = document.getElementById("textAlign");
+const textAlignButtons = textAlignGroup
+  ? Array.from(textAlignGroup.querySelectorAll("[data-align]"))
+  : [];
 const presetSel = document.getElementById("preset");
 const actionTextBtn = document.getElementById("actionText");
 const actionInvertBtn = document.getElementById("actionInvert");
@@ -212,77 +246,241 @@ function normalizeHex(value) {
   return defaults.invertColor;
 }
 
-function updateMaskSize() {
-  if (!maskSvg || !maskText || !maskRect) return;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  maskSvg.setAttribute("width", String(w));
-  maskSvg.setAttribute("height", String(h));
-  maskSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  maskRect.setAttribute("width", String(w));
-  maskRect.setAttribute("height", String(h));
+function hexToRgb(value) {
+  const hex = normalizeHex(value).slice(1);
+  const r = Number.parseInt(hex.slice(0, 2), 16) / 255;
+  const g = Number.parseInt(hex.slice(2, 4), 16) / 255;
+  const b = Number.parseInt(hex.slice(4, 6), 16) / 255;
+  return [r, g, b];
 }
 
-function refreshMaskLayout() {
-  updateMaskSize();
-  syncMaskText();
+function getTextMaxWidth() {
+  const width = window.innerWidth;
+  const padded = Math.max(240, width - 160);
+  return Math.min(width * 0.8, padded);
 }
 
-function syncMaskText() {
-  if (!maskText || !helloTitle) return;
-  maskText.textContent = state.helloText || defaults.helloText;
-  const style = getComputedStyle(helloTitle);
-  maskText.style.fontFamily = style.fontFamily;
-  maskText.style.fontSize = style.fontSize;
-  maskText.style.fontWeight = style.fontWeight;
-  maskText.style.letterSpacing = style.letterSpacing;
-  maskText.style.textTransform = style.textTransform;
-  if (state.helloVisible) {
-    const rect = helloTitle.getBoundingClientRect();
-    const fontSize = Number.parseFloat(style.fontSize) || 84;
-    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
-    const lineHeight = style.lineHeight.endsWith("px")
-      ? Number.parseFloat(style.lineHeight)
-      : fontSize * 1.1;
-    const textAlign = style.textAlign;
-    let anchor = "start";
-    let x = rect.left + paddingLeft;
-    if (textAlign === "center") {
-      anchor = "middle";
-      x = rect.left + rect.width / 2;
-    } else if (textAlign === "right" || textAlign === "end") {
-      anchor = "end";
-      x = rect.right - paddingRight;
-    }
+function getFontFamily(key) {
+  return fontFamilies[key] || fontFamilies.inter;
+}
 
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    let ascent = fontSize * 0.8;
-    if (ctx) {
-      ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      const metrics = ctx.measureText(maskText.textContent || "");
-      if (metrics.actualBoundingBoxAscent) {
-        ascent = metrics.actualBoundingBoxAscent;
-      }
-    }
+function getFontWeight(key) {
+  return fontWeights[key] || TITLE_WEIGHT;
+}
 
-    const extra = Math.max(0, (lineHeight - fontSize) / 2);
-    const baselineOffset = 6;
-    const y = rect.top + paddingTop + extra + ascent + baselineOffset;
+function getFontWidthScale() {
+  return 1;
+}
 
-    maskText.setAttribute("text-anchor", anchor);
-    maskText.setAttribute("dominant-baseline", "alphabetic");
-    maskText.setAttribute("x", String(x));
-    maskText.setAttribute("y", String(y));
-  } else {
-    maskText.setAttribute("text-anchor", "middle");
-    maskText.setAttribute("dominant-baseline", "middle");
-    maskText.setAttribute("x", String(window.innerWidth / 2));
-    maskText.setAttribute("y", String(window.innerHeight / 2));
+function measureTextBlock(text, fontFamily, fontSize, fontWeight, maxWidth) {
+  if (!measureCtx) {
+    return { lines: [String(text || "")], maxLineWidth: 0, lineHeight: fontSize * TITLE_LINE_HEIGHT };
   }
-  maskText.setAttribute("opacity", state.helloVisible ? "1" : "0");
+  const rawLines = String(text || "").split("\n");
+  const lines = [];
+  const lineHeight = fontSize * TITLE_LINE_HEIGHT;
+  const font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  measureCtx.font = font;
+
+  rawLines.forEach((raw) => {
+    const words = raw.trim() ? raw.trim().split(/\s+/) : [""];
+    let line = "";
+    words.forEach((word) => {
+      const test = line ? `${line} ${word}` : word;
+      const width = measureCtx.measureText(test).width;
+      if (maxWidth && line && width > maxWidth) {
+        lines.push(line);
+        line = word;
+        return;
+      }
+      line = test;
+    });
+    lines.push(line);
+  });
+
+  const maxLineWidth = lines.reduce((max, line) => {
+    const width = measureCtx.measureText(line).width;
+    return Math.max(max, width);
+  }, 0);
+
+  return { lines, maxLineWidth, lineHeight };
+}
+
+function updateCanvasText() {
+  if (typeof renderer.setTextState !== "function") return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const fontKey = state.fontFamily;
+  const fontFamily = getFontFamily(fontKey);
+  const fontWeight = getFontWeight(fontKey);
+  const fontWidthScale = getFontWidthScale();
+  const fontSize = clamp(Number(state.fontSize) || defaults.fontSize, 32, 160);
+  const maxWidth = getTextMaxWidth();
+  const layoutMaxWidthDpr = maxWidth * dpr;
+  const wrapBufferDpr = 12 * dpr;
+  const text = state.helloText || defaults.helloText;
+  const align = ["left", "center", "right"].includes(state.textAlign)
+    ? state.textAlign
+    : "center";
+  const metrics = measureTextBlock(text, fontFamily, fontSize, fontWeight, maxWidth);
+  const minCardWidth = 240 * dpr;
+  const maxCardWidth = maxWidth * dpr;
+  const padXDpr = CARD_STYLE.paddingX * dpr;
+  const padYDpr = CARD_STYLE.paddingY * dpr;
+  const shadowPadDpr = TEXT_GLOW.shadowAlpha > 0 ? (TEXT_GLOW.shadowPad * dpr) : 0;
+  const textWidthDpr = Math.max(minCardWidth - padXDpr * 2, metrics.maxLineWidth * fontWidthScale * dpr);
+  const cardWidthDpr = Math.round(Math.min(
+    maxCardWidth,
+    Math.max(minCardWidth, textWidthDpr + padXDpr * 2 + shadowPadDpr * 2)
+  ));
+  const cardHeightDpr = Math.round((metrics.lines.length * metrics.lineHeight * dpr) + padYDpr * 2 + shadowPadDpr * 2);
+  const textOffsetX = 0;
+  const box = {
+    x: Math.round((window.innerWidth * dpr - cardWidthDpr) * 0.5),
+    y: Math.round((window.innerHeight * dpr - cardHeightDpr) * 0.5),
+    width: cardWidthDpr,
+    height: cardHeightDpr,
+    paddingLeft: padXDpr,
+    paddingRight: padXDpr,
+    paddingTop: padYDpr,
+    paddingBottom: padYDpr
+  };
+  const textMaxWidth = Math.max(
+    0,
+    Math.min(layoutMaxWidthDpr + wrapBufferDpr, cardWidthDpr - padXDpr * 2 + wrapBufferDpr)
+  );
+  const color = [...hexToRgb(state.invertColor), 1];
+  const visible = state.helloVisible && !state.invertMode;
+  const cardVisible = state.helloVisible && !state.invertMode;
+  if (typeof renderer.setCardState === "function") {
+    renderer.setCardState({
+      visible: cardVisible,
+      box,
+      radius: CARD_STYLE.radius * dpr,
+      borderWidth: CARD_STYLE.borderWidth * dpr,
+      fill: CARD_STYLE.fill,
+      border: CARD_STYLE.border,
+      blurAlpha: CARD_STYLE.blurAlpha,
+      shadowColor: CARD_STYLE.shadowColor,
+      shadowAlpha: CARD_STYLE.shadowAlpha,
+      shadowBlur: CARD_STYLE.shadowBlur * dpr,
+      shadowOffset: [CARD_STYLE.shadowOffset[0] * dpr, CARD_STYLE.shadowOffset[1] * dpr]
+    });
+  }
+  if (typeof renderer.setGlowState === "function") {
+    renderer.setGlowState({
+      color: TEXT_GLOW.color,
+      alpha: TEXT_GLOW.alpha,
+      shadowColor: TEXT_GLOW.shadowColor,
+      shadowAlpha: TEXT_GLOW.shadowAlpha,
+      shadowOffset: TEXT_GLOW.shadowOffset
+    });
+  }
+  renderer
+    .setTextState({
+      text,
+      fontKey,
+      fontSize: fontSize * dpr,
+      color,
+      align,
+      maxWidth: textMaxWidth,
+      box,
+      offsetX: textOffsetX
+    })
+    .then((ready) => {
+      if (typeof renderer.measureTextState === "function") {
+        const token = ++msdfMeasureToken;
+        const applyMetrics = (msdfMetrics) => {
+          if (!msdfMetrics || token !== msdfMeasureToken) return;
+          const nextTextWidth = Math.max(minCardWidth - padXDpr * 2, msdfMetrics.blockWidth * fontWidthScale);
+          const nextWidth = Math.round(Math.min(
+            maxCardWidth,
+            Math.max(minCardWidth, nextTextWidth + padXDpr * 2 + shadowPadDpr * 2)
+          ));
+          const nextHeight = Math.round(msdfMetrics.blockHeight + padYDpr * 2 + shadowPadDpr * 2);
+          const deltaW = Math.abs(nextWidth - box.width);
+          const deltaH = Math.abs(nextHeight - box.height);
+          if (deltaW < 1 && deltaH < 1) return;
+          const nextBox = {
+            x: Math.round((window.innerWidth * dpr - nextWidth) * 0.5),
+            y: Math.round((window.innerHeight * dpr - nextHeight) * 0.5),
+            width: nextWidth,
+            height: nextHeight,
+            paddingLeft: padXDpr,
+            paddingRight: padXDpr,
+            paddingTop: padYDpr,
+            paddingBottom: padYDpr
+          };
+          const nextTextMaxWidth = Math.max(
+            0,
+            Math.min(layoutMaxWidthDpr + wrapBufferDpr, nextWidth - padXDpr * 2 + wrapBufferDpr)
+          );
+          if (typeof renderer.setCardState === "function") {
+            renderer.setCardState({
+              visible: cardVisible,
+              box: nextBox,
+              radius: CARD_STYLE.radius * dpr,
+              borderWidth: CARD_STYLE.borderWidth * dpr,
+              fill: CARD_STYLE.fill,
+              border: CARD_STYLE.border,
+              blurAlpha: CARD_STYLE.blurAlpha,
+              shadowColor: CARD_STYLE.shadowColor,
+              shadowAlpha: CARD_STYLE.shadowAlpha,
+              shadowBlur: CARD_STYLE.shadowBlur * dpr,
+              shadowOffset: [CARD_STYLE.shadowOffset[0] * dpr, CARD_STYLE.shadowOffset[1] * dpr]
+            });
+          }
+          renderer.setTextState({
+            text,
+            fontKey,
+            fontSize: fontSize * dpr,
+            color,
+            align,
+            maxWidth: nextTextMaxWidth,
+            box: nextBox,
+            offsetX: textOffsetX
+          }).catch(() => {});
+        };
+
+        renderer.measureTextState({
+          text,
+          fontKey,
+          fontSize: fontSize * dpr,
+          maxWidth: layoutMaxWidthDpr + wrapBufferDpr,
+          align
+        }).then((msdfMetrics) => {
+          if (!msdfMetrics || token !== msdfMeasureToken) return;
+          const hasManualBreak = String(text).includes("\n");
+          if (!hasManualBreak && msdfMetrics.lineCount > 1) {
+            renderer.measureTextState({
+              text,
+              fontKey,
+              fontSize: fontSize * dpr,
+              maxWidth: 0,
+              align
+            }).then((nowrapMetrics) => {
+              if (!nowrapMetrics) return;
+              const tolerance = 2;
+              if (nowrapMetrics.blockWidth <= layoutMaxWidthDpr + wrapBufferDpr + tolerance) {
+                applyMetrics(nowrapMetrics);
+                return;
+              }
+              applyMetrics(msdfMetrics);
+            }).catch(() => {});
+            return;
+          }
+          applyMetrics(msdfMetrics);
+        }).catch(() => {});
+      }
+      const cardSupported = typeof renderer.isCardSupported === "function"
+        ? renderer.isCardSupported()
+        : false;
+      if (typeof renderer.setTextVisible === "function") {
+        renderer.setTextVisible(visible).catch(() => {});
+      }
+      document.body.classList.toggle("canvas-text", Boolean(ready));
+      document.body.classList.toggle("canvas-card", Boolean(ready && cardSupported));
+    })
+    .catch(() => {});
 }
 
 function updateInvertButtons() {
@@ -304,6 +502,16 @@ function setInvertMode(enabled, options = {}) {
   state.invertMode = Boolean(enabled);
   document.body.classList.toggle("invert-mode", state.invertMode);
   updateInvertButtons();
+  if (typeof renderer.setTextVisible === "function") {
+    renderer.setTextVisible(!state.invertMode && state.helloVisible).catch(() => {});
+  }
+  if (typeof renderer.setInvertState === "function") {
+    renderer.setInvertState({
+      enabled: state.invertMode,
+      color: [...hexToRgb(state.invertColor), 1]
+    });
+  }
+  updateCanvasText();
   if (save) {
     saveState(state);
   }
@@ -318,6 +526,13 @@ function setInvertColor(value, options = {}) {
   if (invertColorInput) {
     invertColorInput.value = color;
   }
+  if (typeof renderer.setInvertState === "function") {
+    renderer.setInvertState({
+      enabled: state.invertMode,
+      color: [...hexToRgb(color), 1]
+    });
+  }
+  updateCanvasText();
   if (save) {
     saveState(state);
   }
@@ -327,26 +542,31 @@ function applyTitleSettings() {
   const familyKey = state.fontFamily;
   const size = clamp(Number(state.fontSize) || defaults.fontSize, 32, 160);
   const text = typeof state.helloText === "string" ? state.helloText : defaults.helloText;
+  const align = state.textAlign || defaults.textAlign;
 
   state.fontFamily = familyKey;
   state.fontSize = size;
   state.helloText = text;
+  state.textAlign = align;
 
-  helloTitle.textContent = text;
   document.title = text || defaults.helloText;
-  helloTitle.style.fontSize = `${size}px`;
-  helloTitle.style.fontFamily = fontFamilies[familyKey];
-  syncMaskText();
+  updateCanvasText();
+  const fontFamily = getFontFamily(familyKey);
+  const fontWeight = getFontWeight(familyKey);
+  const token = ++fontLoadToken;
+  waitForFontLoad(`${fontWeight} ${size}px ${fontFamily}`).then((loaded) => {
+    if (loaded && token === fontLoadToken) {
+      updateCanvasText();
+    }
+  });
 }
 
 function setHelloVisible(visible) {
   state.helloVisible = visible;
-  if (visible) {
-    helloWrap.style.display = "grid";
-  } else {
-    helloWrap.style.display = "none";
+  if (typeof renderer.setTextVisible === "function") {
+    renderer.setTextVisible(visible && !state.invertMode).catch(() => {});
   }
-  syncMaskText();
+  updateCanvasText();
   document.title = state.helloText || defaults.helloText;
   saveState(state);
 }
@@ -355,6 +575,7 @@ function setPanelCollapsed(collapsed, options = {}) {
   const { save = true } = options;
   state.panelCollapsed = collapsed;
   uiPanel.classList.toggle("collapsed", collapsed);
+  document.body.classList.toggle("panel-collapsed", collapsed);
   if (actionPanelBtn) {
     const label = collapsed ? "Show panel" : "Hide panel";
     actionPanelBtn.setAttribute("aria-label", label);
@@ -385,6 +606,13 @@ function syncUIFromState() {
   helloTextInput.value = state.helloText;
   fontSizeSlider.value = state.fontSize;
   fontFamilySel.value = state.fontFamily;
+  const currentAlign = state.textAlign || defaults.textAlign;
+  if (textAlignButtons.length) {
+    textAlignButtons.forEach((btn) => {
+      const isActive = btn.dataset.align === currentAlign;
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }
 
   presetSel.value = state.preset;
 
@@ -408,14 +636,6 @@ function syncUIFromState() {
   setPanelCollapsed(state.panelCollapsed, { save: false });
   setInvertMode(state.invertMode, { save: false });
   setInvertColor(state.invertColor, { save: false });
-  refreshMaskLayout();
-
-  if (state.helloVisible) {
-    helloWrap.style.display = "grid";
-  } else {
-    helloWrap.style.display = "none";
-  }
-
   applyTitleSettings();
   renderer.applyUniforms(state);
 }
@@ -534,6 +754,17 @@ fontFamilySel.addEventListener("change", () => {
   applyTitleSettings();
 });
 
+if (textAlignButtons.length) {
+  textAlignButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.textAlign = btn.dataset.align;
+      saveState(state);
+      applyTitleSettings();
+      syncUIFromState();
+    });
+  });
+}
+
 if (actionInvertBtn) {
   actionInvertBtn.addEventListener("click", () => setInvertMode(!state.invertMode));
 }
@@ -627,9 +858,11 @@ globalThis.addEventListener("touchstart", () => {
   enableShake();
 }, { passive: true, once: true });
 
-globalThis.addEventListener("resize", refreshMaskLayout, { passive: true });
+globalThis.addEventListener("resize", () => {
+  updateCanvasText();
+}, { passive: true });
 globalThis.addEventListener("fullscreenchange", () => {
-  requestAnimationFrame(refreshMaskLayout);
+  requestAnimationFrame(updateCanvasText);
 });
 
 syncUIFromState();

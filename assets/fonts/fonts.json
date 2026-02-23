@@ -1,0 +1,94 @@
+{
+  "fontsDir": "assets/fonts",
+  "outputDir": "assets/msdf",
+  "defaultTextureSize": 1024,
+  "defaultFontSize": 64,
+  "defaultPxRange": 4,
+  "defaultCharset": "latin1",
+  "fonts": [
+    {
+      "key": "inter",
+      "family": "Inter",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf",
+      "file": "Inter[opsz,wght].ttf"
+    },
+    {
+      "key": "raleway",
+      "family": "Raleway",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/raleway/Raleway%5Bwght%5D.ttf",
+      "file": "Raleway[wght].ttf"
+    },
+    {
+      "key": "playfair",
+      "family": "Playfair Display",
+      "weight": 500,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf",
+      "file": "PlayfairDisplay[wght].ttf"
+    },
+    {
+      "key": "fraunces",
+      "family": "Fraunces",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/fraunces/Fraunces%5BSOFT,WONK,opsz,wght%5D.ttf",
+      "file": "Fraunces[SOFT,WONK,opsz,wght].ttf"
+    },
+    {
+      "key": "slab",
+      "family": "Roboto Slab",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/apache/robotoslab/RobotoSlab%5Bwght%5D.ttf",
+      "file": "RobotoSlab[wght].ttf"
+    },
+    {
+      "key": "rounded",
+      "family": "Nunito",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/nunito/Nunito%5Bwght%5D.ttf",
+      "file": "Nunito[wght].ttf"
+    },
+    {
+      "key": "script",
+      "family": "Pacifico",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/pacifico/Pacifico-Regular.ttf",
+      "file": "Pacifico-Regular.ttf"
+    },
+    {
+      "key": "mono",
+      "family": "Space Mono",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/spacemono/SpaceMono-Regular.ttf",
+      "file": "SpaceMono-Regular.ttf"
+    },
+    {
+      "key": "wide",
+      "family": "Unbounded",
+      "weight": 600,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/unbounded/Unbounded%5Bwght%5D.ttf",
+      "file": "Unbounded[wght].ttf"
+    },
+    {
+      "key": "stencil",
+      "family": "Black Ops One",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/blackopsone/BlackOpsOne-Regular.ttf",
+      "file": "BlackOpsOne-Regular.ttf"
+    },
+    {
+      "key": "blackletter",
+      "family": "UnifrakturMaguntia",
+      "weight": 400,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/unifrakturmaguntia/UnifrakturMaguntia-Book.ttf",
+      "file": "UnifrakturMaguntia-Book.ttf"
+    },
+    {
+      "key": "pixel",
+      "family": "Silkscreen",
+      "weight": 700,
+      "downloadUrl": "https://github.com/google/fonts/raw/main/ofl/silkscreen/Silkscreen-Bold.ttf",
+      "file": "Silkscreen-Bold.ttf"
+    }
+  ]
+}
