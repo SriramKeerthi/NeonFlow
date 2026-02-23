@@ -9,6 +9,7 @@ Neon Flow is a simple, flowy neon signage app that renders animated neon palette
 - Animated neon shader background
 - Preset palettes with fine-grain controls
 - Typography controls for the display text
+- Invert mode with text-as-mask and color picker
 - Mobile-friendly UI with quick actions
 
 ## Local dev
@@ -24,6 +25,7 @@ Then visit http://localhost:8000
 ## Controls
 
 - T: Toggle text
+- I: Toggle invert
 - P: Toggle panel
 - F: Toggle fullscreen
 - X: Toggle UI

@@ -1,9 +1,11 @@
-const KEY = "neonSiteState.v1";
+const KEY = "neonFlowState.v1";
 const defaults = {
   helloVisible: true,
   helloText: "Neon Flow",
   fontSize: 84,
   fontFamily: "atelier",
+  invertMode: false,
+  invertColor: "#f4f1ec",
   panelCollapsed: false,
   preset: "neonFlow",
   warm: [1.62, 0.06, 0.01],
@@ -147,14 +149,21 @@ let uiHidden = false;
 
 const helloWrap = document.getElementById("helloWrap");
 const helloTitle = document.querySelector("#helloWrap .title");
+const maskLayer = document.getElementById("maskLayer");
+const maskSvg = document.getElementById("maskSvg");
+const maskText = document.getElementById("maskText");
+const maskRect = document.getElementById("maskRect");
 
 const uiPanel = document.getElementById("uiPanel");
 const resetBtn = document.getElementById("resetBtn");
 const helloTextInput = document.getElementById("helloText");
+const invertColorInput = document.getElementById("invertColor");
+const invertColorLabel = document.getElementById("invertColorLabel");
 const fontSizeSlider = document.getElementById("fontSize");
 const fontFamilySel = document.getElementById("fontFamily");
 const presetSel = document.getElementById("preset");
 const actionTextBtn = document.getElementById("actionText");
+const actionInvertBtn = document.getElementById("actionInvert");
 const actionUiBtn = document.getElementById("actionUi");
 const actionFullBtn = document.getElementById("actionFull");
 const actionPanelBtn = document.getElementById("actionPanel");
@@ -194,6 +203,126 @@ function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function normalizeHex(value) {
+  if (typeof value !== "string") return defaults.invertColor;
+  const trimmed = value.trim();
+  if (/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  }
+  return defaults.invertColor;
+}
+
+function updateMaskSize() {
+  if (!maskSvg || !maskText || !maskRect) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  maskSvg.setAttribute("width", String(w));
+  maskSvg.setAttribute("height", String(h));
+  maskSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  maskRect.setAttribute("width", String(w));
+  maskRect.setAttribute("height", String(h));
+}
+
+function refreshMaskLayout() {
+  updateMaskSize();
+  syncMaskText();
+}
+
+function syncMaskText() {
+  if (!maskText || !helloTitle) return;
+  maskText.textContent = state.helloText || defaults.helloText;
+  const style = getComputedStyle(helloTitle);
+  maskText.style.fontFamily = style.fontFamily;
+  maskText.style.fontSize = style.fontSize;
+  maskText.style.fontWeight = style.fontWeight;
+  maskText.style.letterSpacing = style.letterSpacing;
+  maskText.style.textTransform = style.textTransform;
+  if (state.helloVisible) {
+    const rect = helloTitle.getBoundingClientRect();
+    const fontSize = Number.parseFloat(style.fontSize) || 84;
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const lineHeight = style.lineHeight.endsWith("px")
+      ? Number.parseFloat(style.lineHeight)
+      : fontSize * 1.1;
+    const textAlign = style.textAlign;
+    let anchor = "start";
+    let x = rect.left + paddingLeft;
+    if (textAlign === "center") {
+      anchor = "middle";
+      x = rect.left + rect.width / 2;
+    } else if (textAlign === "right" || textAlign === "end") {
+      anchor = "end";
+      x = rect.right - paddingRight;
+    }
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    let ascent = fontSize * 0.8;
+    if (ctx) {
+      ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const metrics = ctx.measureText(maskText.textContent || "");
+      if (metrics.actualBoundingBoxAscent) {
+        ascent = metrics.actualBoundingBoxAscent;
+      }
+    }
+
+    const extra = Math.max(0, (lineHeight - fontSize) / 2);
+    const baselineOffset = 6;
+    const y = rect.top + paddingTop + extra + ascent + baselineOffset;
+
+    maskText.setAttribute("text-anchor", anchor);
+    maskText.setAttribute("dominant-baseline", "alphabetic");
+    maskText.setAttribute("x", String(x));
+    maskText.setAttribute("y", String(y));
+  } else {
+    maskText.setAttribute("text-anchor", "middle");
+    maskText.setAttribute("dominant-baseline", "middle");
+    maskText.setAttribute("x", String(window.innerWidth / 2));
+    maskText.setAttribute("y", String(window.innerHeight / 2));
+  }
+  maskText.setAttribute("opacity", state.helloVisible ? "1" : "0");
+}
+
+function updateInvertButtons() {
+  const label = state.invertMode ? "Disable invert" : "Enable invert";
+  if (actionInvertBtn) {
+    actionInvertBtn.setAttribute("aria-label", label);
+    actionInvertBtn.setAttribute("title", `${label} (I)`);
+  }
+  if (invertColorLabel) {
+    invertColorLabel.textContent = state.invertMode ? "Background Color" : "Text Color";
+  }
+  if (invertColorInput) {
+    invertColorInput.setAttribute("aria-label", state.invertMode ? "Background color" : "Text color");
+  }
+}
+
+function setInvertMode(enabled, options = {}) {
+  const { save = true } = options;
+  state.invertMode = Boolean(enabled);
+  document.body.classList.toggle("invert-mode", state.invertMode);
+  updateInvertButtons();
+  if (save) {
+    saveState(state);
+  }
+}
+
+function setInvertColor(value, options = {}) {
+  const { save = true } = options;
+  const color = normalizeHex(value);
+  state.invertColor = color;
+  document.documentElement.style.setProperty("--invert-color", color);
+  document.documentElement.style.setProperty("--text-color", color);
+  if (invertColorInput) {
+    invertColorInput.value = color;
+  }
+  if (save) {
+    saveState(state);
+  }
+}
+
 function applyTitleSettings() {
   const familyKey = state.fontFamily;
   const size = clamp(Number(state.fontSize) || defaults.fontSize, 32, 160);
@@ -207,6 +336,7 @@ function applyTitleSettings() {
   document.title = text || defaults.helloText;
   helloTitle.style.fontSize = `${size}px`;
   helloTitle.style.fontFamily = fontFamilies[familyKey];
+  syncMaskText();
 }
 
 function setHelloVisible(visible) {
@@ -216,6 +346,7 @@ function setHelloVisible(visible) {
   } else {
     helloWrap.style.display = "none";
   }
+  syncMaskText();
   document.title = state.helloText || defaults.helloText;
   saveState(state);
 }
@@ -275,6 +406,9 @@ function syncUIFromState() {
 
   syncValueReadoutsOnly();
   setPanelCollapsed(state.panelCollapsed, { save: false });
+  setInvertMode(state.invertMode, { save: false });
+  setInvertColor(state.invertColor, { save: false });
+  refreshMaskLayout();
 
   if (state.helloVisible) {
     helloWrap.style.display = "grid";
@@ -400,6 +534,14 @@ fontFamilySel.addEventListener("change", () => {
   applyTitleSettings();
 });
 
+if (actionInvertBtn) {
+  actionInvertBtn.addEventListener("click", () => setInvertMode(!state.invertMode));
+}
+
+if (invertColorInput) {
+  invertColorInput.addEventListener("input", () => setInvertColor(invertColorInput.value));
+}
+
 if (actionTextBtn) {
   actionTextBtn.addEventListener("click", () => setHelloVisible(!state.helloVisible));
 }
@@ -464,6 +606,7 @@ globalThis.addEventListener("keydown", (event) => {
     toggleFullscreen().catch(() => {});
   }
   if (key === "x") setUiHidden(!uiHidden);
+  if (key === "i") setInvertMode(!state.invertMode);
   if (key === "r") {
     state = cloneDefaults();
     saveState(state);
@@ -483,6 +626,11 @@ globalThis.addEventListener("touchend", () => {
 globalThis.addEventListener("touchstart", () => {
   enableShake();
 }, { passive: true, once: true });
+
+globalThis.addEventListener("resize", refreshMaskLayout, { passive: true });
+globalThis.addEventListener("fullscreenchange", () => {
+  requestAnimationFrame(refreshMaskLayout);
+});
 
 syncUIFromState();
 renderer.start();
